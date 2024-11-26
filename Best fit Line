@@ -1,0 +1,71 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.optimize import curve_fit
+
+# Function to convert time to decimal day
+def time_to_decimal(time_str):
+    hours, minutes = map(int, time_str.split(':'))
+    return hours / 24 + minutes / 1440
+
+# Parse data from the uploaded file
+file_path = 'ASTR19_F24_group_project_data(1).txt'
+
+# Read and process the data
+days = []
+times = []
+heights = []
+
+with open(file_path, 'r') as file:
+    for line in file:
+        if line.strip() and not line.startswith("#"):  # Ignore comments and empty lines
+            cols = line.split()
+            day = int(cols[0])
+            time = cols[1]
+            height = float(cols[2])
+            days.append(day)
+            times.append(time)
+            heights.append(height)
+
+# Convert days and times into a single decimal day
+decimal_days = np.array([day + time_to_decimal(time) for day, time in zip(days, times)])
+heights = np.array(heights)
+
+# Define the sinusoidal function
+def sinusoid(x, amplitude, frequency, phase, offset):
+    return amplitude * np.sin(frequency * x + phase) + offset
+
+# RMS error as weights
+weights = 1 / (0.25 ** 2)
+
+# Initial guess for the parameters: amplitude, frequency, phase, offset
+initial_guess = [3, 2 * np.pi / 1, 0, np.mean(heights)]  # Assumes one oscillation per day
+
+# Fit the sinusoidal model with weights
+params, covariance = curve_fit(
+    sinusoid, decimal_days, heights, p0=initial_guess, sigma=np.full_like(heights, weights), absolute_sigma=True
+)
+
+# Extract fitted parameters
+amplitude, frequency, phase, offset = params
+
+# Generate the fitted curve
+fitted_heights = sinusoid(decimal_days, amplitude, frequency, phase, offset)
+
+# Plot the data and the best-fit oscillatory curve
+plt.figure(figsize=(10, 6))
+plt.errorbar(decimal_days, heights, yerr=0.25, fmt='o', label="Observed Data (with error bars)", color="blue", alpha=0.6)
+plt.plot(decimal_days, fitted_heights, label="Best-Fit Oscillatory Curve", color="red", linewidth=2)
+plt.xlabel("Decimal Day")
+plt.ylabel("Tide Height (ft)")
+plt.title("Oscillatory Best-Fit Line for Tide Height Data with Experimental Error")
+plt.legend()
+plt.grid()
+plt.show()
+
+# Print the fitted parameters with uncertainties
+parameter_uncertainties = np.sqrt(np.diag(covariance))
+print("Fitted Sinusoidal Parameters:")
+print(f"Amplitude: {amplitude:.3f} ± {parameter_uncertainties[0]:.3f}")
+print(f"Frequency: {frequency:.3f} (radians/day) ± {parameter_uncertainties[1]:.3f}")
+print(f"Phase: {phase:.3f} ± {parameter_uncertainties[2]:.3f}")
+print(f"Offset: {offset:.3f} ± {parameter_uncertainties[3]:.3f}")
