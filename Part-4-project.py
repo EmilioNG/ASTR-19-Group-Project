@@ -1,6 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
+from scipy.special import erf
 
 # Function to convert time to decimal day
 def time_to_decimal(time_str):
@@ -127,7 +128,7 @@ outlier_decimal_day = outlier_day + time_to_decimal(outlier_time)
 outlier_fitted_height = sinusoid(outlier_decimal_day, amplitude, frequency, phase, offset)
 
 # Step 3: Define the outlier residual (2 feet above the fitted value)
-outlier_residual = outlier_fitted_height + 2  # Add 2 feet to the outlier residual
+outlier_residual = outlier_fitted_height  # Add 2 feet to the outlier residual
 
 # Step 4: Add the outlier residual to the histogram
 residuals_with_outlier = np.append(residuals, outlier_residual)  # Append the outlier to the residuals array
@@ -158,5 +159,18 @@ plt.grid()
 plt.show()
 
 
-std_x = np.std(height)
-print(std_x)
+
+def event_probability(x, mu, s):
+    # outlier_residual in this context is the value of the event
+    # residual_mean in this context is the gaussian mean
+    # residual_std in this context is the gaussian standard deviation
+    z = np.fabs((x - mu)/s)
+    def zfunc(z):
+        return 0.5*(1.0 + erf(z/2**0.5))
+
+    #Return the probability of getting
+    #an event of magnitude >=x
+    return 1.0 - (zfunc(z) - zfunc(-1*z))
+    
+outlier_probability = event_probability(outlier_residual, residual_mean, residual_std)
+print(outlier_probability)
