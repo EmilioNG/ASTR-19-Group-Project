@@ -128,7 +128,7 @@ outlier_decimal_day = outlier_day + time_to_decimal(outlier_time)
 outlier_fitted_height = sinusoid(outlier_decimal_day, amplitude, frequency, phase, offset)
 
 # Step 3: Define the outlier residual (2 feet above the fitted value)
-outlier_residual = outlier_fitted_height  # Add 2 feet to the outlier residual
+outlier_residual = outlier_fitted_height + 2 - outlier_fitted_height
 
 # Step 4: Add the outlier residual to the histogram
 residuals_with_outlier = np.append(residuals, outlier_residual)  # Append the outlier to the residuals array
@@ -173,4 +173,4 @@ def event_probability(x, mu, s):
     return 1.0 - (zfunc(z) - zfunc(-1*z))
     
 outlier_probability = event_probability(outlier_residual, residual_mean, residual_std)
-print(outlier_probability)
+print(f'The probability of the Tsunami having a 2-feet outlier is {outlier_probability * 100}%')
